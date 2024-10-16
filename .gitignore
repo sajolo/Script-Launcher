@@ -1,0 +1,8 @@
+# Archivos temporales y carpetas
+*.pyc
+__pycache__/
+*.log
+
+# Configuraciones de entorno local
+.env
+.vscode/
