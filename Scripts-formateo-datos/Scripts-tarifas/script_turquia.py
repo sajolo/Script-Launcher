@@ -1,6 +1,7 @@
 import os
 import ftplib
 import shutil
+import zipfile
 import pandas as pd
 import mysql.connector
 from datetime import datetime
@@ -37,13 +38,13 @@ def obtener_datos_ftp():
 
         return ftp_host, ftp_port, is_sftp, ftp_user, ftp_pass
     else:
-        raise ValueError("No se encontraron datos de conexión FTP para el Id 'TURKEY_TEST'")  # Cambia a 'TURKEY' en la red de la empresa
+        raise ValueError("No se encontraron datos de conexión FTP para el Id 'TURKEY_TEST'")  # Cambiar a 'TURKEY' en la red de la empresa
 
 # Función para conectarse al servidor FTP y descargar archivos TXT
 def descargar_archivos_ftp(ftp_host, ftp_user, ftp_pass, obtener_destino, is_sftp=False):
     # Conexión FTP o SFTP
     print(f"Conectando al servidor {'SFTP' if is_sftp else 'FTP'} en {ftp_host}...")
-    
+
     if is_sftp:
         import paramiko
         transport = paramiko.Transport((ftp_host, ftp_port))
@@ -65,16 +66,28 @@ def descargar_archivos_ftp(ftp_host, ftp_user, ftp_pass, obtener_destino, is_sft
             if destino_dir:
                 os.makedirs(destino_dir, exist_ok=True)
                 local_path = os.path.join(destino_dir, file)
-                
+
                 if is_sftp:
                     sftp.get(file, local_path)
                 else:
                     with open(local_path, 'wb') as f:
                         ftp.retrbinary(f"RETR {file}", f.write)
-                
+
                 if procesar:
                     print(f"Procesando el archivo {file} para la marca {brand_code}...")
                     procesar_archivo(local_path, brand_code)
+
+                # Comprimir archivo después de procesar
+                fecha_str = datetime.now().strftime('%Y%m%d')  # Utilizar la fecha actual para nombrar el archivo ZIP
+                comprimir_txt_a_zip(local_path, fecha_str)
+
+                # Eliminar archivo del servidor después de procesar y comprimir
+                if is_sftp:
+                    sftp.remove(file)
+                    print(f"Archivo eliminado del servidor SFTP: {file}")
+                else:
+                    ftp.delete(file)
+                    print(f"Archivo eliminado del servidor FTP: {file}")
             else:
                 print(f"No se reconoce ese nombre de la marca en ninguna entrada de la columna Turkey_Brand_Name: {nombre_marca}")
 
@@ -84,7 +97,8 @@ def descargar_archivos_ftp(ftp_host, ftp_user, ftp_pass, obtener_destino, is_sft
     else:
         ftp.quit()
 
-    print("Descarga desde el servidor finalizada.")
+    print("Descarga desde el servidor y eliminación de archivos finalizada.")
+
 
 # Función para obtener el brand_code, el estado de activación, y la ruta de destino desde la base de datos
 def obtener_destino(nombre_marca):
@@ -132,10 +146,12 @@ def formatear_referencia(referencia, brand_code):
             if 'longitud' in reglas and 'relleno' in reglas:
                 referencia = referencia.zfill(reglas['longitud'])
             # Grupo Audi: respetar espacios en posiciones específicas
-            elif 'espacios_pos' in reglas:
+            elif grupo == 'AUDI':
                 if len(referencia) >= reglas['longitud_min'] and len(referencia) <= reglas['longitud_max']:
                     if len(referencia) >= 10:
                         referencia = referencia[:10] + ' ' + referencia[10:]
+                # Eliminar espacios finales en eferencias del grupo Audi
+                referencia = referencia.rstrip()
             # Grupo PSA, Mercedes, Toyota: referencias alfanuméricas sin guiones ni espacios
             elif 'longitud_min' in reglas and 'longitud_max' in reglas:
                 referencia = referencia[:reglas['longitud_max']]
@@ -226,34 +242,51 @@ def guardar_txt(datos, ruta_txt):
         for row in datos:
             file.write(';'.join(row) + '\n')
 
+# Lista de marcas que no generan CSV y el TXT debe tener "_EUR" en el nombre
+marcas_no_csv = ['BM1', 'MI1', 'HN1', 'JA1', 'LR1', 'MB1', 'SM1', 'RV1', 'MG1']
+
 # Función para procesar el archivo descargado
 def procesar_archivo(ruta_archivo, brand_code):
     datos, csv_filename = procesar_archivo_txt(ruta_archivo, brand_code)
-    
-    if datos and csv_filename:
-        pend_dir = r'C:\Users\Saul\Desktop\s02-ean\DataAcquisition\TARIFAS_ORIGINALES\_DESATENDIDA\Pendientes'  # Cambia a '\\s02-ean\DataAcquisition\TARIFAS_ORIGINALES\_DESATENDIDA\Pendientes' en la empresa
-        os.makedirs(pend_dir, exist_ok=True)
-        
-        # Guardar el archivo CSV en la carpeta de _DESATENDIDA\Pendientes
-        ruta_csv_pendientes = os.path.join(pend_dir, csv_filename)
-        guardar_csv(datos, ruta_csv_pendientes)
-        
+
+    if datos:
+        # Si la marca NO está en la lista de marcas que generan CSV
+        if brand_code not in marcas_no_csv:
+            pend_dir = r'C:\Users\Saul\Desktop\s02-ean\DataAcquisition\TARIFAS_ORIGINALES\_DESATENDIDA\Pendientes'
+            os.makedirs(pend_dir, exist_ok=True)
+
+            # Guardar el archivo CSV en la carpeta de _DESATENDIDA\Pendientes
+            ruta_csv_pendientes = os.path.join(pend_dir, csv_filename)
+            guardar_csv(datos, ruta_csv_pendientes)
+
         # Guardar el archivo TXT en la carpeta de la marca correspondiente
-        txt_filename = f'TARIFA_{brand_code}_TUR.txt'
-        ruta_txt_tur = os.path.join(r'C:\Users\Saul\Desktop\s02-ean\DataAcquisition\TARIFAS_ORIGINALES', brand_code, 'TUR', txt_filename)  # Cambia a: '\\s02-ean\DataAcquisition\TARIFAS_ORIGINALES\[brand_code]\TUR' en la empresa
+        if brand_code in marcas_no_csv:
+            txt_filename = f'TARIFA_{brand_code}_TUR_EUR.txt'
+        else:
+            txt_filename = f'TARIFA_{brand_code}_TUR.txt'
+
+        ruta_txt_tur = os.path.join(r'C:\Users\Saul\Desktop\s02-ean\DataAcquisition\TARIFAS_ORIGINALES', brand_code, 'TUR', txt_filename)
         guardar_txt(datos, ruta_txt_tur)
 
+        # Obtener el grupo de la marca
         grupo = obtener_grupos_marca(brand_code)
         if grupo:
             for marca in grupo:
                 if marca != brand_code:  # Evitar duplicados
                     # Guardar también el archivo TXT en las carpetas de las marcas del grupo
-                    ruta_txt_grupo = os.path.join(r'C:\Users\Saul\Desktop\s02-ean\DataAcquisition\TARIFAS_ORIGINALES', marca, 'TUR', txt_filename.replace(brand_code, marca))  # Cambia a: '\\s02-ean\DataAcquisition\TARIFAS_ORIGINALES\[marca]\TUR' en la empresa
+                    if marca in marcas_no_csv:
+                        txt_filename_grupo = f'TARIFA_{marca}_TUR_EUR.txt'
+                    else:
+                        txt_filename_grupo = f'TARIFA_{marca}_TUR.txt'
+
+                    ruta_txt_grupo = os.path.join(r'C:\Users\Saul\Desktop\s02-ean\DataAcquisition\TARIFAS_ORIGINALES', marca, 'TUR', txt_filename_grupo)
                     guardar_txt(datos, ruta_txt_grupo)
 
-                    # Guardar también una copia del CSV en _DESATENDIDA\Pendientes
-                    ruta_csv_pendientes_grupo = os.path.join(pend_dir, csv_filename.replace(brand_code, marca))
-                    guardar_csv(datos, ruta_csv_pendientes_grupo)
+                    # Guardar también una copia del CSV en _DESATENDIDA\Pendientes si la marca lo requiere
+                    if marca not in marcas_no_csv:
+                        ruta_csv_pendientes_grupo = os.path.join(pend_dir, csv_filename.replace(brand_code, marca))
+                        guardar_csv(datos, ruta_csv_pendientes_grupo)
+
 
 # Función para obtener los grupos de marcas
 def obtener_grupos_marca(brand_code):
@@ -271,6 +304,15 @@ def obtener_grupos_marca(brand_code):
         if brand_code in grupo:
             return grupo
     return None
+
+# Función para comprimir los TXT descargados desde el FTP a ZIP
+def comprimir_txt_a_zip(ruta_txt, fecha):
+    ruta_zip = ruta_txt.replace('.txt', f'_{fecha}.zip')
+    with zipfile.ZipFile(ruta_zip, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        zipf.write(ruta_txt, os.path.basename(ruta_txt))
+    os.remove(ruta_txt)  # Eliminar el archivo TXT original después de comprimir
+    print(f"Archivo comprimido")
+
 
 # Función principal
 def main():
