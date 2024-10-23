@@ -64,6 +64,19 @@ def descargar_archivos_ftp(ftp_host, ftp_user, ftp_pass, obtener_destino, is_sft
             destino_dir, brand_code, procesar = obtener_destino(nombre_marca)
 
             if destino_dir:
+                # Caso especial para la marca Ford
+                if brand_code == 'FR1':
+                    local_path = os.path.join(destino_dir, file)
+
+                    if is_sftp:
+                        sftp.get(file, local_path)
+                    else:
+                        with open(local_path, 'wb') as f:
+                            ftp.retrbinary(f"RETR {file}", f.write)
+
+                    print(f"Archivo para Ford descargado en la ruta correspondiente, debe procesarse con otra herramienta")
+                    continue #Saltar el resto de procesamiento para Ford
+
                 os.makedirs(destino_dir, exist_ok=True)
                 local_path = os.path.join(destino_dir, file)
 
