@@ -83,10 +83,10 @@ class ScriptLauncherApp(tk.Tk):
         """Mostrar los scripts disponibles en la carpeta Scripts-AFT con título, descripción y botón de ejecución"""
         scripts_info = [
             {"title": "Dividir ficheros", "description": "El script descomprime archivos CSV desde //s02-ean/DataAcquisition/AFTERMARKET/_DIVIDIR_FICHEROS/FICHERO_ORIGINAL, "
-                                                         "divide cada CSV en 4 partes y guarda las partes en //s02-ean/DataAcquisition/AFTERMARKET/_DIVIDIR_FICHEROS.",
+                                                             "divide cada CSV en 4 partes y guarda las partes en //s02-ean/DataAcquisition/AFTERMARKET/_DIVIDIR_FICHEROS.",
              "script": "split_csv.py"},
             {"title": "Unir ficheros", "description": "El script une las partes de archivos CSV ubicados en //s02-ean/DataAcquisition/AFTERMARKET/_DIVIDIR_FICHEROS y genera un "
-                                                      "archivo combinado con el prefijo joined_ en la misma carpeta.", "script": "join_csv.py"}
+                                                          "archivo combinado con el prefijo joined_ en la misma carpeta.", "script": "join_csv.py"}
         ]
         self.show_scripts_menu("C:/Users/Saul/Desktop/s02-ean/DataAcquisition/Script-Launcher/Scripts-formateo-datos/Scripts-AFT", scripts_info)
 
@@ -94,16 +94,16 @@ class ScriptLauncherApp(tk.Tk):
         """Mostrar los scripts disponibles en la carpeta Scripts-tarifas con título, descripción y botón de ejecución"""
         scripts_info = [
             {"title": "Mercedes", "description": "El script descomprime archivos desde \\s02-ean\DataAcquisition\TARIFAS_ORIGINALES\_DESCARGAS\MERCEDES, "
-                                                 "procesa XML y genera un CSV y TXT en \\s02-ean\DataAcquisition\TARIFAS_ORIGINALES\MB1, \\s02-ean\DataAcquisition\TARIFAS_ORIGINALES"
-                                                 "\SM1, y \\s02-ean\DataAcquisition\TARIFAS_ORIGINALES\_DESATENDIDA\Pendientes.", "script": "mercedes_script.py"},
+                                                     "procesa XML y genera un CSV y TXT en \\s02-ean\DataAcquisition\TARIFAS_ORIGINALES\MB1, \\s02-ean\DataAcquisition\TARIFAS_ORIGINALES"
+                                                     "\SM1, y \\s02-ean\DataAcquisition\TARIFAS_ORIGINALES\_DESATENDIDA\Pendientes.", "script": "mercedes_script.py"},
             {"title": "Turquía", "description": "El script se conecta a un servidor FTP, descarga archivos TXT, los procesa generando archivos CSV en formato 1-2-3-4 "
-                                                 "y los guarda en \\s02-ean\DataAcquisition\TARIFAS_ORIGINALES\[brand_code]\TUR y \\s02-ean\DataAcquisition\TARIFAS_ORIGINALES\_DESATENDIDA"
-                                                 "\Pendientes.", "script": "script_turquia.py"}
+                                                     "y los guarda en \\s02-ean\DataAcquisition\TARIFAS_ORIGINALES\[brand_code]\TUR y \\s02-ean\DataAcquisition\TARIFAS_ORIGINALES\_DESATENDIDA"
+                                                     "\Pendientes.", "script": "script_turquia.py"}
         ]
         self.show_scripts_menu("C:/Users/Saul/Desktop/s02-ean/DataAcquisition/Script-Launcher/Scripts-formateo-datos/Scripts-tarifas", scripts_info)
 
     def show_scripts_menu(self, folder_path, scripts_info):
-        """Mostrar los scripts disponibles en una carpeta con título, descripción y botón de ejecución"""
+        """Mostrar los scripts disponibles en una carpeta con título y botón de ejecución, y un botón para ver la descripción en una ventana emergente"""
         for widget in self.container.winfo_children():
             widget.destroy()
 
@@ -113,26 +113,42 @@ class ScriptLauncherApp(tk.Tk):
         label = tk.Label(frame, text="Seleccione un script para ejecutar", font=(DarkModeStyle.FONT_FAMILY, 24), fg=DarkModeStyle.LABEL_COLOR, bg=DarkModeStyle.BG_COLOR)
         label.pack(pady=40)
 
-        # Mostrar cada script con título, descripción y botón de ejecutar
-        for script_info in scripts_info:
-            script_frame = tk.Frame(frame, bg=DarkModeStyle.BG_COLOR)
-            script_frame.pack(pady=20, padx=50, fill="x")  # Añadido padding horizontal para centrar el contenido
+        # Mostrar cada script con título, botón de ver descripción y botón de ejecutar en filas de dos
+        row_frame = None
+        for index, script_info in enumerate(scripts_info):
+            if index % 2 == 0:
+                row_frame = tk.Frame(frame, bg=DarkModeStyle.BG_COLOR)
+                row_frame.pack(pady=10, padx=20, fill="x")
+
+            script_frame = tk.Frame(row_frame, bg=DarkModeStyle.BG_COLOR, highlightbackground="#444", highlightthickness=1)
+            script_frame.pack(side=tk.LEFT, padx=10, pady=5, fill="both", expand=True)
 
             # Título del script (más grande y en negrita)
             title = tk.Label(script_frame, text=script_info["title"], font=(DarkModeStyle.FONT_FAMILY, 20, "bold"), fg=DarkModeStyle.LABEL_COLOR, bg=DarkModeStyle.BG_COLOR)
-            title.pack(anchor="w", padx=20)
+            title.pack(anchor="w", padx=10, pady=(10, 5))
 
-            # Descripción del script (debajo del título)
-            description = tk.Label(script_frame, text=script_info["description"], font=(DarkModeStyle.FONT_FAMILY, 12), fg="#888888", bg=DarkModeStyle.BG_COLOR, wraplength=700, justify="left")
-            description.pack(anchor="w", padx=20, pady=5)
+            # Botón para ver la descripción del script
+            description_button = self.create_rounded_button(script_frame, "Ver Descripción", lambda desc=script_info["description"]: self.show_description(desc), color=DarkModeStyle.BACK_BUTTON_COLOR)
+            description_button.pack(anchor="w", padx=10, pady=5)
 
-            # Botón para ejecutar el script (debajo de la descripción)
+            # Botón para ejecutar el script
             execute_button = self.create_rounded_button(script_frame, "Ejecutar", lambda s=script_info["script"]: self.run_script(folder_path, s))
-            execute_button.pack(anchor="w", padx=20, pady=10)
+            execute_button.pack(anchor="w", padx=10, pady=10)
 
         # Botón para volver al menú principal (en gris)
         back_button = self.create_rounded_button(frame, "Volver", self.show_main_menu, color=DarkModeStyle.BACK_BUTTON_COLOR)
         back_button.pack(pady=40)
+
+    def show_description(self, description):
+        """Mostrar una ventana emergente con la descripción del script"""
+        description_window = tk.Toplevel(self)
+        description_window.title("Descripción del Script")
+        description_window.configure(bg=DarkModeStyle.BG_COLOR)
+        description_window.geometry("600x400")
+        description_text = tk.Text(description_window, wrap='word', font=(DarkModeStyle.FONT_FAMILY, 14), fg="#888888", bg=DarkModeStyle.BG_COLOR, relief="flat")
+        description_text.insert(tk.END, description)
+        description_text.config(state='disabled')
+        description_text.pack(expand=True, fill='both', padx=20, pady=20)
 
     def run_script(self, folder, script):
         """Ejecutar un script de Python abriendo una terminal PowerShell"""
