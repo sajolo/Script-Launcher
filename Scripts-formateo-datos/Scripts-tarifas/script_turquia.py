@@ -70,9 +70,11 @@ def descargar_archivos_ftp(ftp_host, ftp_user, ftp_pass, obtener_destino, is_sft
 
                     if is_sftp:
                         sftp.get(file, local_path)
+                        sftp.remove(file)
                     else:
                         with open(local_path, 'wb') as f:
                             ftp.retrbinary(f"RETR {file}", f.write)
+                        ftp.delete(file)
 
                     print(f"Archivo para Ford descargado en la ruta correspondiente, debe procesarse con otra herramienta")
                     continue #Saltar el resto de procesamiento para Ford
