@@ -12,8 +12,10 @@ class DarkModeStyle:
     BUTTON_TEXT_COLOR = "#ffffff"  # Texto blanco
     LABEL_COLOR = "#e8eaed"  # Texto claro
     BACK_BUTTON_COLOR = "#6c757d"  # Color gris para el botón "Volver"
-    BUTTON_RADIUS = 20  # Redondeo del botón
+    BUTTON_RADIUS = 10  # Redondeo del botón
     BUTTON_PADDING = {"padx": 20, "pady": 10}  # Ajuste de padding
+    BORDER_WIDTH = 2
+    BORDER_COLOR = "#444"
 
 # --- Aplicación principal ---
 class ScriptLauncherApp(tk.Tk):
@@ -71,10 +73,10 @@ class ScriptLauncherApp(tk.Tk):
         tarifas_button.pack(side=tk.LEFT, padx=20, pady=10)
 
     def create_rounded_button(self, parent, text, command, color=DarkModeStyle.BUTTON_COLOR):
-        """Crear un botón redondeado con efecto hover"""
-        button = tk.Button(parent, text=text, font=(DarkModeStyle.FONT_FAMILY, 16), bg=color, fg=DarkModeStyle.BUTTON_TEXT_COLOR, 
-                           activebackground=DarkModeStyle.BUTTON_HOVER_COLOR if color == DarkModeStyle.BUTTON_COLOR else color, 
-                           activeforeground=DarkModeStyle.BUTTON_TEXT_COLOR, relief="flat", command=command, cursor="hand2", borderwidth=0)
+        """Crear un botón más estético y profesional con efecto hover y bordes redondeados"""
+        button = tk.Button(parent, text=text, font=(DarkModeStyle.FONT_FAMILY, 14, "bold"), bg=color, fg=DarkModeStyle.BUTTON_TEXT_COLOR,
+                           activebackground=DarkModeStyle.BUTTON_HOVER_COLOR if color == DarkModeStyle.BUTTON_COLOR else color,
+                           activeforeground=DarkModeStyle.BUTTON_TEXT_COLOR, relief="solid", command=command, cursor="hand2", borderwidth=DarkModeStyle.BORDER_WIDTH)
         button.bind("<Enter>", lambda e: button.config(bg=DarkModeStyle.BUTTON_HOVER_COLOR if color == DarkModeStyle.BUTTON_COLOR else color))
         button.bind("<Leave>", lambda e: button.config(bg=color))
         return button
@@ -98,7 +100,9 @@ class ScriptLauncherApp(tk.Tk):
                                                      "\SM1, y \\s02-ean\DataAcquisition\TARIFAS_ORIGINALES\_DESATENDIDA\Pendientes.", "script": "mercedes_script.py"},
             {"title": "Turquía", "description": "El script se conecta a un servidor FTP, descarga archivos TXT, los procesa generando archivos CSV en formato 1-2-3-4 "
                                                      "y los guarda en \\s02-ean\DataAcquisition\TARIFAS_ORIGINALES\[brand_code]\TUR y \\s02-ean\DataAcquisition\TARIFAS_ORIGINALES\_DESATENDIDA"
-                                                     "\Pendientes.", "script": "script_turquia.py"}
+                                                     "\Pendientes.", "script": "script_turquia.py"},
+            {"title": "PSA", "description": "El script procesa archivos tar.gz para las marcas del grupo PSA y genera los CSV y TXT en lasrutas corespondientes.", "script": "script_psa.py"},
+            {"title": "Informe Tarifas", "description": "El script genera un informe XLSX (Excel) con datos de las tarifas que hay en el sistema en la ruta ?¿ y actualiza la base de datos con esos mismos datos.", "script": "script_tariff_report.py"}
         ]
         self.show_scripts_menu("C:/Users/Saul/Desktop/s02-ean/DataAcquisition/Script-Launcher/Scripts-formateo-datos/Scripts-tarifas", scripts_info)
 
@@ -120,11 +124,11 @@ class ScriptLauncherApp(tk.Tk):
                 row_frame = tk.Frame(frame, bg=DarkModeStyle.BG_COLOR)
                 row_frame.pack(pady=10, padx=20, fill="x")
 
-            script_frame = tk.Frame(row_frame, bg=DarkModeStyle.BG_COLOR, highlightbackground="#444", highlightthickness=1)
+            script_frame = tk.Frame(row_frame, bg=DarkModeStyle.BG_COLOR, highlightbackground=DarkModeStyle.BORDER_COLOR, highlightthickness=DarkModeStyle.BORDER_WIDTH)
             script_frame.pack(side=tk.LEFT, padx=10, pady=5, fill="both", expand=True)
 
             # Título del script (más grande y en negrita)
-            title = tk.Label(script_frame, text=script_info["title"], font=(DarkModeStyle.FONT_FAMILY, 20, "bold"), fg=DarkModeStyle.LABEL_COLOR, bg=DarkModeStyle.BG_COLOR)
+            title = tk.Label(script_frame, text=script_info["title"], font=(DarkModeStyle.FONT_FAMILY, 18, "bold"), fg=DarkModeStyle.LABEL_COLOR, bg=DarkModeStyle.BG_COLOR)
             title.pack(anchor="w", padx=10, pady=(10, 5))
 
             # Botón para ver la descripción del script
