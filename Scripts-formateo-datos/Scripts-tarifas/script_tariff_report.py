@@ -1,6 +1,7 @@
 import os
 import openpyxl
 from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from datetime import datetime
 import mysql.connector
 
@@ -35,15 +36,15 @@ def get_latest_effective_date(country_iso, brand_name):
     connection = mysql.connector.connect(**db_config)
     cursor = connection.cursor()
     query = (
-        "SELECT MAX(Inform_Date) FROM tariffs_dates "
+        "SELECT MAX(last_file_date) FROM tariffs_dates "
         "WHERE country_iso = %s AND brand_name = %s"
     )
     cursor.execute(query, (country_iso, brand_name))
     result = cursor.fetchone()[0]
     cursor.close()
     connection.close()
-    if result:
-        return datetime.strptime(result[:8], "%Y%m%d").strftime("%Y-%m-%d")
+    if result and result <= datetime.now().date():
+        return result.strftime("%Y-%m-%d")
     return None
 
 def get_price_file_source(country_iso, brand_name):
@@ -86,15 +87,30 @@ def get_price_file_source(country_iso, brand_name):
     connection.close()
     return company_name
 
+def get_converted_from_different_source(country_iso, brand_name):
+    connection = mysql.connector.connect(**db_config)
+    cursor = connection.cursor()
+    # Obtener Converted_From_Different_Source desde price_file_conversion_source
+    cursor.execute(
+        "SELECT Converted_From_Different_Source FROM price_file_conversion_source WHERE Country_ISO = %s AND brand_name = %s",
+        (country_iso, brand_name)
+    )
+    converted_result = cursor.fetchone()
+    cursor.close()
+    connection.close()
+    if converted_result:
+        return converted_result[0]
+    return ""
+
 # Actualizar tabla price_file_report_ext
-def update_price_file_report_ext(country_iso, brand_desc, effective_date, price_file_source):
+def update_price_file_report_ext(country_iso, brand_desc, effective_date, price_file_source, converted_from_different_source):
     connection = mysql.connector.connect(**db_config)
     cursor = connection.cursor()
     query = (
         "REPLACE INTO price_file_report_ext (COUNTRY_ISO, BRAND_DESC, EFFECTIVE_DATE, PRICE_FILE_SOURCE, CONVERTED_FROM_DIFFERENT_SOURCE) "
-        "VALUES (%s, %s, %s, %s, '')"
+        "VALUES (%s, %s, %s, %s, %s)"
     )
-    cursor.execute(query, (country_iso, brand_desc, effective_date if effective_date else None, price_file_source))
+    cursor.execute(query, (country_iso, brand_desc, effective_date if effective_date else None, price_file_source, converted_from_different_source))
     connection.commit()
     cursor.close()
     connection.close()
@@ -127,11 +143,21 @@ def create_or_update_xlsx():
     sheet.title = "Tariffs Report"
 
     # Encabezados de columnas
-    sheet["A1"] = "COUNTRY_ISO"
-    sheet["B1"] = "BRAND DESC."
-    sheet["C1"] = "EFFECTIVE DATE"
-    sheet["D1"] = "PRICE FILE SOURCE"
-    sheet["E1"] = "CONVERTED FROM DIFFERENT SOURCE"
+    headers = ["COUNTRY_ISO", "BRAND DESC.", "EFFECTIVE DATE", "PRICE FILE SOURCE", "CONVERTED FROM DIFFERENT SOURCE"]
+    for col_num, header in enumerate(headers, 1):
+        cell = sheet.cell(row=1, column=col_num, value=header)
+        cell.font = Font(bold=True)
+        cell.alignment = Alignment(horizontal="center")
+        cell.fill = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid")
+        cell.border = Border(left=Side(style="thin"),
+                             right=Side(style="thin"),
+                             top=Side(style="thin"),
+                             bottom=Side(style="thin"))
+
+    # Ajustar el ancho de las columnas
+    column_widths = [15, 22, 15, 40, 50]
+    for col_num, width in enumerate(column_widths, 1):
+        sheet.column_dimensions[openpyxl.utils.get_column_letter(col_num)].width = width
 
     # Llenar el XLSX con los datos
     row = 2
@@ -139,16 +165,25 @@ def create_or_update_xlsx():
         for brand in brands:
             effective_date = get_latest_effective_date(country_iso, brand)
             price_file_source = get_price_file_source(country_iso, brand) if effective_date else ""
+            converted_from_different_source = get_converted_from_different_source(country_iso, brand)
 
             # Actualizar la tabla price_file_report_ext
-            update_price_file_report_ext(country_iso, brand, effective_date, price_file_source)
+            update_price_file_report_ext(country_iso, brand, effective_date, price_file_source, converted_from_different_source)
 
             # Escribir en el archivo XLSX
             sheet[f"A{row}"] = country_iso
             sheet[f"B{row}"] = brand
             sheet[f"C{row}"] = effective_date if effective_date else ""
             sheet[f"D{row}"] = price_file_source
-            sheet[f"E{row}"] = ""
+            sheet[f"E{row}"] = converted_from_different_source
+
+            # Aplicar bordes a las celdas
+            for col_num in range(1, 6):
+                cell = sheet.cell(row=row, column=col_num)
+                cell.border = Border(left=Side(style="thin"),
+                                     right=Side(style="thin"),
+                                     top=Side(style="thin"),
+                                     bottom=Side(style="thin"))
             row += 1
 
     # Guardar el libro actualizado
