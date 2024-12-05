@@ -16,7 +16,7 @@ db_config = {
 # Lista de países
 countries_iso = [
     "MKD", "UKR", "DEU", "FRA", "ITA", "GBR", "CHE", "NLD", "GRC", "ALB",
-    "POL", "ISL", "NOR", "MLT", "HRV", "AUT", "CZE", "FIN", "CYP", "LUX",
+    "POL", "ISL", "NOR", "MLT", "HRV", "KOR", "AUT", "CZE", "FIN", "CYP", "LUX",
     "ROU", "DNK", "BEL", "BGR", "MNE", "HUN", "MDA", "SRB", "BIH", "IRL",
     "LTU", "LVA", "EST", "SVN", "SVK", "SWE", "IND", "ZAF", "TUN", "NAM",
     "AUS", "MEX"
