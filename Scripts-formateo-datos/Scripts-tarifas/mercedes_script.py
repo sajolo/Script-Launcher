@@ -149,7 +149,7 @@ def main():
             txt_path = generar_txt(datos, fecha, MB1_DIR, pais)
             gestionar_archivos(csv_path, txt_path, PEND_DIR, pais)
 
-    print("Archivos listos, presione Enter para finalizar")
+    print("Archivos listos, cierre esta ventana para finalizar")
     input()
 
 if __name__ == "__main__":

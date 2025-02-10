@@ -342,7 +342,7 @@ def main():
     
     descargar_archivos_ftp(ftp_host, ftp_user, ftp_pass, obtener_destino, is_sftp)
 
-    print("Proceso terminado. Pulse Enter para finalizar.")
+    print("Proceso terminado. Cierre esta ventana para finalizar.")
     input()
 
 if __name__ == "__main__":

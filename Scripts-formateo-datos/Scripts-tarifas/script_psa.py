@@ -172,7 +172,7 @@ def main():
             move_tar_file(file_path, country_iso)
 
     shutil.rmtree(extract_path)
-    print("Proceso terminado, pulse ENTER para finalizar")
+    print("Proceso terminado, cierre esta ventana para finalizar")
     input()
 
 # Ejecutar el script

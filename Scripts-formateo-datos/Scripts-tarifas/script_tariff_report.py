@@ -27,7 +27,7 @@ brands = [
     "ALFA ROMEO", "AUDI", "BMW", "BYD", "CITROËN", "DAEWOO/CHEVROLET", "DACIA", "DS", "FIAT", "FORD",
     "HONDA", "HYUNDAI", "ISUZU", "IVECO", "JAGUAR", "JEEP", "KIA", "LANCIA", "LAND ROVER", "LEXUS",
     "MAHINDRA", "MAN", "MAZDA", "MERCEDES BENZ", "MERCEDES TRUCKS", "MG", "MINI", "MITSUBISHI", "NISSAN", "OPEL",
-    "PEUGEOT", "PORSCHE", "RENAULT", "RENAULT TRUCKS", "ROVER/MG", "SAAB", "SEAT", "SKODA", "SUBARU", "SUZUKI",
+    "PEUGEOT", "PORSCHE", "RENAULT", "RENAULT TRUCKS", "ROVER/MG", "SAAB", "SEAT", "SKODA", "SMART", "SUBARU", "SUZUKI",
     "TATA", "TESLA", "TOYOTA", "VOLVO", "VOLVO TRUCKS", "VOLKSWAGEN"
 ]
 
@@ -188,7 +188,7 @@ def create_or_update_xlsx():
 
     # Guardar el libro actualizado
     workbook.save(report_path)
-    print("Informe generado, pulse Enter para finalizar...")
+    print("Informe generado, cierre esta ventana para finalizar...")
     input()
 
 # Ejecutar el script
