@@ -167,6 +167,21 @@ class ScriptLauncherApp(tk.Tk):
                 "title": "Informe Tarifas",
                 "description_file": "Documentación proceso script Informes de Tarifas.docx",
                 "script": "script_tariff_report.exe"
+            },
+            {
+                "title": "Generar Enviados Traducciones",
+                "description_file": "Documentación proceso script Traducciones.docx",
+                "script": "script_generar_enviados.exe"
+            },
+            {
+                "title": "Generar XML Traducciones",
+                "description_file": "Documentación proceso script Traducciones.docx",
+                "script": "script_tariff_report.exe"
+            },
+            {
+                "title": "Generar CSV Accounting",
+                "description_file": "Documentación proceso script Accounting.docx",
+                "script": "pasar_a_csv.exe"
             }
         ]
         folder_path = "C:/Users/Saul/Desktop/s02-ean/DataAcquisition/Script-Launcher/Scripts-formateo-datos/Scripts-tarifas"

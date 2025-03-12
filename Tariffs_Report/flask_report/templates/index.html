@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Tariffs Report</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .highlight {
+      background-color: #ccffcc; /* Light green */
+    }
+    /* Sticky header for the row of countries */
+    .sticky-header {
+      position: sticky;
+      top: 0;
+      background-color: #f8fafc;
+      z-index: 50;
+    }
+
+    /* date-container => pantallas con varios paises => tamaño base pequeño */
+    .date-container {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      white-space: nowrap;
+      line-height: 1.1;
+      font-size: 0.623rem;
+    }
+    @media (max-width: 1000px) {
+      .date-container {
+        font-size: 0.4rem;
+      }
+    }
+    @media (max-width: 600px) {
+      .date-container {
+        font-size: 0.3rem;
+      }
+    }
+
+    /* sc-date-container => en single_country_mode => 0.9rem */
+    .sc-date-container {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      white-space: nowrap;
+      line-height: 1.1;
+      font-size: 0.9rem;
+    }
+
+    /* Daewoo/Chevrolet in two lines, uppercase */
+    .daewoo-chevrolet {
+      white-space: nowrap;
+    }
+    .daewoo-chevrolet::before {
+      content: "DAEWOO/\A";
+      white-space: pre;
+    }
+    .daewoo-chevrolet::after {
+      content: "CHEVROLET";
+    }
+  </style>
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='GTMotive.ico') }}">
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans overflow-x-auto">
+
+  <div class="w-full px-6 py-4">
+    <!-- Header: color legend, date format, etc. -->
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-3xl font-bold">Tariffs Report</h1>
+      <div class="flex items-center space-x-4">
+        <!-- Highlighted items -->
+        <div class="flex items-center space-x-1">
+          <div class="w-4 h-4 bg-green-100 border border-green-300"></div>
+          <span class="text-sm">Highlighted dates</span>
+        </div>
+        <div class="text-sm text-gray-500 ml-3">
+          Date format: YYYY-MM-DD
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter form, auto-submit on change -->
+    <form method="GET" action="/" class="flex items-center space-x-4 mb-6 flex-wrap" id="filterForm">
+      <!-- Country -->
+      <div class="flex flex-col">
+        <label for="country" class="text-sm font-medium">Country:</label>
+        <select name="country" id="country" 
+                class="border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                onchange="document.getElementById('filterForm').submit();">
+          <option value="">-- All --</option>
+          {% for c in all_countries %}
+            <option value="{{ c }}" {% if filtro_country == c %}selected{% endif %}>{{ c }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Brand -->
+      <div class="flex flex-col">
+        <label for="brand" class="text-sm font-medium">Brand:</label>
+        <select name="brand" id="brand"
+                class="border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                onchange="document.getElementById('filterForm').submit();">
+          <option value="">-- All --</option>
+          {% for b in all_brands %}
+            <option value="{{ b }}" {% if filtro_brand == b %}selected{% endif %}>{{ b }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- highlight_range -->
+      <div class="flex flex-col">
+        <label for="highlight_range" class="text-sm font-medium">Highlight last (days):</label>
+        <select name="highlight_range" id="highlight_range"
+                class="border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                onchange="document.getElementById('filterForm').submit();">
+          <option value="">-- None --</option>
+          <option value="1"  {% if filtro_highlight == '1' %}selected{% endif %}>Last day</option>
+          <option value="7"  {% if filtro_highlight == '7' %}selected{% endif %}>Last week</option>
+          <option value="30" {% if filtro_highlight == '30' %}selected{% endif %}>Last month</option>
+          <option value="60" {% if filtro_highlight == '60' %}selected{% endif %}>Last 2 months</option>
+          <option value="90" {% if filtro_highlight == '90' %}selected{% endif %}>Last 3 months</option>
+          <option value="120" {% if filtro_highlight == '120' %}selected{% endif %}>Last 4 months</option>
+          <option value="150" {% if filtro_highlight == '150' %}selected{% endif %}>Last 5 months</option>
+          <option value="180" {% if filtro_highlight == '180' %}selected{% endif %}>Last 6 months</option>
+          <option value="365" {% if filtro_highlight == '365' %}selected{% endif %}>Last year</option>
+        </select>
+      </div>
+    </form>
+
+    {% if single_country_mode and filtro_brand == '' %}
+      <!-- Case: single country (country != ALL) and brand=ALL => layout in rows of 7 columns -->
+      {% set c_iso = used_countries[0] %}
+      <div class="mb-4 text-center font-bold text-lg">
+        {{ c_iso }}<br>
+        <img src="{{ url_for('static', filename='flags/' ~ c_iso ~ '.png') }}"
+             width="20" height="12" class="mx-auto mt-1">
+      </div>
+
+      {% set chunk_size = 7 %}
+      {% set brand_list = used_brands %}
+      {% for i in range(0, brand_list|length, chunk_size) %}
+        <div class="grid grid-cols-7 gap-2 mb-2">
+          {% for b in brand_list[i:i+chunk_size] %}
+            {% set info = data[(b, c_iso)] %}
+            {% set highlight = info.highlight %}
+            {% set yearstr = info.year %}
+            {% set mdstr = info.md %}
+            <div class="border p-2 text-center align-middle {% if highlight %}highlight{% endif %}">
+              {% if b == "DAEWOO/CHEVROLET" %}
+                <span class="daewoo-chevrolet uppercase"></span>
+              {% else %}
+                <span class="uppercase">{{ b }}</span>
+              {% endif %}
+              <br>
+              <!-- single country => sc-date-container => SIEMPRE 2 líneas aunque vacías -->
+              <div class="sc-date-container">
+                <div>{% if yearstr %}{{ yearstr }}{% else %}&nbsp;{% endif %}</div>
+                <div>{% if mdstr %}{{ mdstr }}{% else %}&nbsp;{% endif %}</div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% endfor %}
+
+    {% elif single_country_mode %}
+      <!-- single-country-mode normal (country != ALL, brand != ALL) -->
+      <table class="table-auto w-full text-xs leading-tight border border-gray-300">
+        <tr class="sticky-header">
+          <td class="border p-2"></td>
+          {% for b in used_brands %}
+            <td class="border p-2 text-center font-bold">
+              {% if b == "DAEWOO/CHEVROLET" %}
+                <span class="daewoo-chevrolet uppercase"></span>
+              {% else %}
+                <span class="uppercase">{{ b }}</span>
+              {% endif %}
+            </td>
+          {% endfor %}
+        </tr>
+        <tr>
+          {% set c_iso = used_countries[0] %}
+          <td class="border p-2 text-center font-bold align-middle">
+            {{ c_iso }}<br>
+            <img src="{{ url_for('static', filename='flags/' ~ c_iso ~ '.png') }}"
+                 width="20" height="12" class="mx-auto mt-1">
+          </td>
+          {% for b in used_brands %}
+            {% set info = data[(b, c_iso)] %}
+            {% set highlight = info.highlight %}
+            {% set yearstr = info.year %}
+            {% set mdstr = info.md %}
+            <td class="border p-2 text-center align-middle {% if highlight %}highlight{% endif %}">
+              <!-- sc-date-container => 2 líneas fijas -->
+              <div class="sc-date-container">
+                <div>{% if yearstr %}{{ yearstr }}{% else %}&nbsp;{% endif %}</div>
+                <div>{% if mdstr %}{{ mdstr }}{% else %}&nbsp;{% endif %}</div>
+              </div>
+            </td>
+          {% endfor %}
+        </tr>
+      </table>
+
+    {% else %}
+      <!-- Layout normal => row=brand, columns=countries (multiple countries) -->
+      <table class="table-auto w-full text-xs leading-tight border border-gray-300">
+        <tr class="sticky-header">
+          <td class="border p-2"></td>
+          {% for c_iso in used_countries %}
+            <td class="border p-2 text-center align-middle">
+              {{ c_iso }}<br>
+              <img src="{{ url_for('static', filename='flags/' ~ c_iso ~ '.png') }}"
+                   width="20" height="12" class="mx-auto mt-1">
+            </td>
+          {% endfor %}
+        </tr>
+        {% for marca in used_brands %}
+        <tr>
+          <td class="border p-2 text-center font-bold align-middle">
+            {% if marca == "DAEWOO/CHEVROLET" %}
+              <span class="daewoo-chevrolet uppercase"></span>
+            {% else %}
+              <span class="uppercase">{{ marca }}</span>
+            {% endif %}
+          </td>
+          {% for c_iso in used_countries %}
+            {% set info = data[(marca, c_iso)] %}
+            {% set highlight = info.highlight %}
+            {% set yearstr = info.year %}
+            {% set mdstr = info.md %}
+            <td class="border p-2 text-center align-middle {% if highlight %}highlight{% endif %}">
+              <!-- date-container => 2 líneas fijas en multi-country -->
+              <div class="date-container">
+                <div>{% if yearstr %}{{ yearstr }}{% else %}&nbsp;{% endif %}</div>
+                <div>{% if mdstr %}{{ mdstr }}{% else %}&nbsp;{% endif %}</div>
+              </div>
+            </td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </table>
+    {% endif %}
+  </div>
+</body>
+</html>
